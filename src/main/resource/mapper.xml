@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sdong.spring_demo.mapper.UserMapper">
+	<resultMap id="UserResultMap" type="sdong.spring_demo.bean.User">
+		<id property="id" column="ID" />
+		<result property="sex" column="SEX" />
+		<result property="name" column="NAME" />
+		<result property="createTime" column="CREATE_TIME" />
+	</resultMap>
+	<select id="selectList" resultMap="UserResultMap">
+		SELECT * FROM USER ORDER BY ID
+	</select>
+	
+	<insert id="insert" useGeneratedKeys="true" keyProperty="id" parameterType="User">
+		INSERT INTO USER (ID, NAME, SEX, CREATE_TIME) VALUES (#{id}, #{name}, #{sex}, #{createTime})
+	</insert>
+</mapper>

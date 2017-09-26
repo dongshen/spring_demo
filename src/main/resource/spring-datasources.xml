@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/context
+    http://www.springframework.org/schema/context/spring-context.xsd
+    http://www.springframework.org/schema/tx 
+    http://www.springframework.org/schema/tx/spring-tx.xsd
+    http://www.springframework.org/schema/aop 
+    http://www.springframework.org/schema/aop/spring-aop.xsd
+    http://www.springframework.org/schema/util
+    http://www.springframework.org/schema/util/spring-util.xsd">
+	<!-- aspectj 注解 -->
+	<aop:aspectj-autoproxy />
+	<context:annotation-config />
+	<context:component-scan base-package="sdong" />
+	<bean
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>classpath:jdbc.properties</value>
+			</list>
+		</property>
+	</bean>
+	<bean id="baseDataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource"
+		destroy-method="close">
+		<property name="driverClass" value="${jdbc.driver}" />
+		<property name="initialPoolSize" value="${c3p0.initialPoolSize}" />
+		<property name="maxIdleTime" value="${c3p0.maxIdleTime}" />
+		<property name="maxPoolSize" value="${c3p0.maxPoolSize}" />
+		<property name="acquireIncrement" value="${c3p0.acquireIncrement}" />
+		<property name="acquireRetryAttempts" value="${c3p0.acquireRetryAttempts}" />
+		<property name="acquireRetryDelay" value="${c3p0.acquireRetryDelay}" />
+		<property name="breakAfterAcquireFailure" value="${c3p0.breakAfterAcquireFailure}" />
+		<property name="autoCommitOnClose" value="${c3p0.autoCommitOnClose}" />
+		<property name="checkoutTimeout" value="${c3p0.checkoutTimeout}" />
+		<property name="idleConnectionTestPeriod" value="${c3p0.idleConnectionTestPeriod}" />
+	</bean>
+	<!-- slave 从库只读数据源 -->
+	<bean id="slaveDataSource" parent="baseDataSource">
+		<property name="jdbcUrl" value="${jdbc.url.slave}" />
+		<property name="user" value="${jdbc.username.slave}" />
+		<property name="password" value="${jdbc.password.slave}" />
+	</bean>
+	<!-- master 主库读写数据源(主要负责写操作) -->
+	<bean id="masterDataSource" parent="baseDataSource">
+		<property name="jdbcUrl" value="${jdbc.url.master}" />
+		<property name="user" value="${jdbc.username.master}" />
+		<property name="password" value="${jdbc.password.master}" />
+	</bean>
+	<!-- 多数据源自动切换 -->
+	<bean id="dataSource" class="sdong.spring_demo.datasource.MultipleDataSource">
+		<property name="targetDataSources">
+			<map key-type="java.lang.String">
+				<entry key="${jdbc.key.slave}" value-ref="slaveDataSource" />
+				<entry key="${jdbc.key.master}" value-ref="masterDataSource" />
+			</map>
+		</property>
+		<!-- 默认使用的数据源 -->
+		<!-- <property name="defaultTargetDataSource" ref="masterDataSource"/> -->
+	</bean>
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="typeAliasesPackage" value="sdong.spring_demo.bean" />
+	</bean>
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="sdong.spring_demo.mapper" />
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory" />
+	</bean>
+	<!-- 配置使用 slave 数据源的业务方法前缀列表 -->
+	<util:list id="useSlaveDataSourceMethodPrefix">
+		<value>select</value>
+	</util:list>
+	<!-- 配置使用 master 数据源的业务方法前缀列表 -->
+	<util:list id="useMasterDataSourceMethodPrefix">
+		<value>insert</value>
+		<value>update</value>
+		<value>delete</value>
+	</util:list>
+	<bean class="sdong.spring_demo.datasource.MultipleDataSourceAspect" />
+	<bean class="sdong.spring_demo.datasource.MultipleDataSourceContext" />
+</beans>
