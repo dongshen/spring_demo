@@ -17,7 +17,7 @@ public class MultipleDataSourceAspect {
 	@Resource
 	private List<String> useMasterDataSourceMethodPrefix;
 
-	@Before("execution(* org.fanlychie.service.*.*(..))")
+	@Before("execution(* sdong.spring_demo.service.*.*(..))")
 	public void before(JoinPoint point) {
 		String method = point.getSignature().getName();
 		boolean useSlave = useSlaveDataSourceMethodPrefix.stream().anyMatch(i -> method.startsWith(i));
